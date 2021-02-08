@@ -29,6 +29,9 @@ func main() {
 		panic("GROUP_NAME must be specified")
 	}
 
+	versionInfo := domeneshop.GetVersion()
+	klog.Infof("Initializing %s v%s (%s), built %s", "cert-manager-webhook-domeneshop", versionInfo.Version, versionInfo.GitCommit, versionInfo.BuildDate)
+
 	// This will register our custom DNS provider with the webhook serving
 	// library, making it available as an API under the provided GroupName.
 	// You can register multiple DNS provider implementations with a single
@@ -176,9 +179,6 @@ func (c *domeneshopDNSProviderSolver) CleanUp(ch *v1alpha1.ChallengeRequest) err
 // The stopCh can be used to handle early termination of the webhook, in cases
 // where a SIGTERM or similar signal is sent to the webhook process.
 func (c *domeneshopDNSProviderSolver) Initialize(kubeClientConfig *rest.Config, stopCh <-chan struct{}) error {
-
-	versionInfo := domeneshop.GetVersion()
-	klog.Infof("Initializing %s v%s (%s), built %s", "cert-manager-webhook-domeneshop", versionInfo.Version, versionInfo.GitCommit, versionInfo.BuildDate)
 
 	client, err := kubernetes.NewForConfig(kubeClientConfig)
 	if err != nil {
