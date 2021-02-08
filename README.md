@@ -1,54 +1,123 @@
-# ACME webhook example
+# cert-manager-webhook-domeneshop
 
-The ACME issuer type supports an optional 'webhook' solver, which can be used
-to implement custom DNS01 challenge solving logic.
+This is a DNS01 webhook implementation for [cert-manager](https://github.com/jetstack/cert-manager),
+allowing usage of the [Domeneshop API](https://api.domeneshop.no/docs/) to issue certificates for
+wildcard domains or other names that are not publicly accessible. 
 
-This is useful if you need to use cert-manager with a DNS provider that is not
-officially supported in cert-manager core.
+# Usage
 
-## Why not in core?
+## Requirements
 
-As the project & adoption has grown, there has been an influx of DNS provider
-pull requests to our core codebase. As this number has grown, the test matrix
-has become un-maintainable and so, it's not possible for us to certify that
-providers work to a sufficient level.
+- Working [cert-manager](https://github.com/jetstack/cert-manager) deployed in your Kubernetes cluster
+- An API key for the [Domeneshop API](https://api.domeneshop.no/docs/)
+- A domain configured to use DNS service with Domeneshop
 
-By creating this 'interface' between cert-manager and DNS providers, we allow
-users to quickly iterate and test out new integrations, and then packaging
-those up themselves as 'extensions' to cert-manager.
+## Installing
 
-We can also then provide a standardised 'testing framework', or set of
-conformance tests, which allow us to validate the a DNS provider works as
-expected.
+1. Create a Kubernetes namespace for the webhook to live in
 
-## Creating your own webhook
+    ```
+    kubectl create ns webhook-domeneshop
+    ```
 
-Webhook's themselves are deployed as Kubernetes API services, in order to allow
-administrators to restrict access to webhooks with Kubernetes RBAC.
+2. Install the Helm chart
 
-This is important, as otherwise it'd be possible for anyone with access to your
-webhook to complete ACME challenge validations and obtain certificates.
+    ```
+    helm install webhook --set groupName='api.domeneshop.no' --namespace=webhook-domeneshop deploy/domeneshop-webhook
+    ```
 
-To make the set up of these webhook's easier, we provide a template repository
-that can be used to get started quickly.
+3. Ensure the pod is running
 
-### Creating your own repository
+    ```shell
+    % kubectl get pods -n webhook-domeneshop
+    NAME                                                       READY   STATUS    RESTARTS   AGE
+    webhook-cert-manager-webhook-domeneshop-7745d84f75-qrlsk   1/1     Running   0          108s
+    ```
 
-### Running the test suite
+## Issuer and secrets
 
-All DNS providers **must** run the DNS01 provider conformance testing suite,
-else they will have undetermined behaviour when used with cert-manager.
+In order to issue certificates using the webhook, create a new Issuer resource with cert-manager.
 
-**It is essential that you configure and run the test suite when creating a
-DNS01 webhook.**
+Ensure the email address is set to a valid address, and that the `groupName` matches the name passed in step #2 above.
 
-An example Go test file has been provided in [main_test.go]().
-
-You can run the test suite with:
-
-```bash
-$ TEST_ZONE_NAME=example.com go test .
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Issuer
+metadata:
+  name: domeneshop-dns01
+spec:
+  acme:
+    email: example@example.com
+    server: https://acme-v02.api.letsencrypt.org/directory
+    privateKeySecretRef:
+      name: letsencrypt-account-key
+    solvers:
+    - dns01:
+        webhook:
+          groupName: api.domeneshop.no
+          solverName: domeneshop
+          config:
+            APITokenSecretRef:
+              key: APIToken
+              name: domeneshop-credentials
+            APISecretSecretRef:
+              key: APISecret
+              name: domeneshop-credentials
 ```
 
-The example file has a number of areas you must fill in and replace with your
-own options in order for tests to pass.
+Finally, create the corresponding secret containing your [Domeneshop API credentials](https://api.domeneshop.no/docs/#section/Authentication):
+
+```
+kubectl create secret generic domeneshop-credentials \
+    --namespace webhook-domeneshop \
+    --from-literal=APIToken=<token> \
+    --from-literal=APISecret=<secret>
+```
+
+**NOTE:** If your cluster is RBAC-enabled and you want to use a `ClusterIssuer` instead, you may have to uncomment the bottom two resources in `deploy/domeneshop-webhook/templates/rbac.yaml` before installing the Helm chart, in order for the webhook to read the credentials secrets in the `cert-manager` namespace.
+
+## Issue a certificate
+
+You should now be ready to issue certificate using DNS01 challenges through the Domeneshop API!
+
+```yaml
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: test-certificate
+spec:
+  dnsNames:
+  - www.example.com
+  issuerRef:
+    name: domeneshop-dns01
+    kind: Issuer
+  secretName: test-certificate-tls
+```
+
+Eventually, the certificate should be issued using the webhook:
+
+```shell
+% kubectl get certificate
+NAME                                                  READY   SECRET                                                AGE
+test-certificate                                      True    test-certificate-tls                                  3m36s
+```
+
+For troubleshooting, try using `kubectl describe` on the resources related to the issuance (e.g. `certificates.acme.cert-manager.io`, `challenges.acme.cert-manager.io`, `orders.acme.cert-manager.io`). Refer to the [cert-manager documentation](https://cert-manager.io/docs/) for more information.
+
+# Running tests
+
+1. Download required testing binaries:
+
+    ```shell
+    make test/kubebuilder
+    ```
+
+2. Edit `testdata/domeneshop-webhook/secret.yml` with a valid API token and secret.
+
+3. Run the tests (replace `example.com.` with the FQDN for a domain on your account):
+
+    ```
+    TEST_ZONE_NAME=example.com. go test -v .
+    ```
+
+    **NOTE:** The tests will create and validate TXT records on your domain.
