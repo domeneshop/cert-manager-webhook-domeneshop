@@ -5,7 +5,7 @@ BUILD_DATE = $(shell date -u +'%Y-%m-%dT%H:%M:%SZ')
 GIT_COMMIT = $(shell git rev-parse --short HEAD)
 GIT_BRANCH = $(shell git rev-parse --symbolic-full-name --verify --quiet --abbrev-ref HEAD)
 
-IMAGE_NAME := "docker-registry.domeneshop.no/cert-manager-webhook-domeneshop"
+IMAGE_NAME := "domeneshop/cert-manager-webhook-domeneshop"
 IMAGE_TAG := "latest"
 
 OUT := $(shell pwd)/_out
