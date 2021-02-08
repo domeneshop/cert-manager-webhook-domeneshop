@@ -1,0 +1,76 @@
+---
+# Create a selfsigned Issuer, in order to create a root CA certificate for
+# signing webhook serving certificates
+apiVersion: cert-manager.io/v1alpha3
+kind: Issuer
+metadata:
+  name: {{ include "cert-manager-webhook-domeneshop.selfSignedIssuer" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app: {{ include "cert-manager-webhook-domeneshop.name" . }}
+    chart: {{ include "cert-manager-webhook-domeneshop.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  selfSigned: {}
+
+---
+
+# Generate a CA Certificate used to sign certificates for the webhook
+apiVersion: cert-manager.io/v1alpha3
+kind: Certificate
+metadata:
+  name: {{ include "cert-manager-webhook-domeneshop.rootCACertificate" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app: {{ include "cert-manager-webhook-domeneshop.name" . }}
+    chart: {{ include "cert-manager-webhook-domeneshop.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  secretName: {{ include "cert-manager-webhook-domeneshop.rootCACertificate" . }}
+  duration: 43800h # 5y
+  issuerRef:
+    name: {{ include "cert-manager-webhook-domeneshop.selfSignedIssuer" . }}
+  commonName: "ca.cert-manager-webhook-domeneshop.cert-manager"
+  isCA: true
+
+---
+
+# Create an Issuer that uses the above generated CA certificate to issue certs
+apiVersion: cert-manager.io/v1alpha3
+kind: Issuer
+metadata:
+  name: {{ include "cert-manager-webhook-domeneshop.rootCAIssuer" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app: {{ include "cert-manager-webhook-domeneshop.name" . }}
+    chart: {{ include "cert-manager-webhook-domeneshop.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  ca:
+    secretName: {{ include "cert-manager-webhook-domeneshop.rootCACertificate" . }}
+
+---
+
+# Finally, generate a serving certificate for the webhook to use
+apiVersion: cert-manager.io/v1alpha3
+kind: Certificate
+metadata:
+  name: {{ include "cert-manager-webhook-domeneshop.servingCertificate" . }}
+  namespace: {{ .Release.Namespace | quote }}
+  labels:
+    app: {{ include "cert-manager-webhook-domeneshop.name" . }}
+    chart: {{ include "cert-manager-webhook-domeneshop.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+spec:
+  secretName: {{ include "cert-manager-webhook-domeneshop.servingCertificate" . }}
+  duration: 8760h # 1y
+  issuerRef:
+    name: {{ include "cert-manager-webhook-domeneshop.rootCAIssuer" . }}
+  dnsNames:
+  - {{ include "cert-manager-webhook-domeneshop.fullname" . }}
+  - {{ include "cert-manager-webhook-domeneshop.fullname" . }}.{{ .Release.Namespace }}
+  - {{ include "cert-manager-webhook-domeneshop.fullname" . }}.{{ .Release.Namespace }}.svc

@@ -1,0 +1,10 @@
+{
+  "APITokenSecretRef": {
+    "name": "domeneshop-credentials",
+    "key": "APIToken"
+  },
+  "APISecretSecretRef": {
+    "name": "domeneshop-credentials",
+    "key": "APISecret"
+  }
+}
