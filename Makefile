@@ -55,7 +55,7 @@ rendered-manifest.yaml:
 chart: test/helmlint clean-helm
 	helm package --destination "$(OUT)/helm" deploy/domeneshop-webhook
 	helm repo index "$(OUT)/helm" \
-		--url "https://domeneshop.github.io/cert-manager-webhook-domeneshop/charts" \
+		--url "https://awigen.github.io/cert-manager-webhook-domeneshop" \
 		--merge "charts/index.yaml"
 	mv -f "$(OUT)/helm/index.yaml" charts/
 	mv -f "$(OUT)/helm/"*.tgz charts/

@@ -3,12 +3,12 @@ entries:
   cert-manager-webhook-domeneshop:
   - apiVersion: v1
     appVersion: 1.0.0
-    created: "2023-02-11T09:41:58.24417601+10:00"
+    created: "2023-02-11T10:00:30.956379488+10:00"
     description: cert-manager webhook for Domeneshop
-    digest: bf75fa8b9c510d7b06585a5cb3975a9374eb4d48ab2045d91a55f2da5e2c25dc
+    digest: 5928b0874909c52b6b04f82e0573676fc306fa27c7892bf850980c64cc65a3dc
     icon: https://domene.shop/svg/logo-no.svg
     name: cert-manager-webhook-domeneshop
     urls:
-    - https://domeneshop.github.io/cert-manager-webhook-domeneshop/charts/cert-manager-webhook-domeneshop-1.0.0.tgz
+    - https://awigen.github.io/cert-manager-webhook-domeneshop/cert-manager-webhook-domeneshop-1.0.0.tgz
     version: 1.0.0
-generated: "2023-02-11T09:41:58.243766989+10:00"
+generated: "2023-02-11T10:00:30.955364063+10:00"
