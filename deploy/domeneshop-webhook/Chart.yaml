@@ -3,3 +3,4 @@ appVersion: "1.0.0"
 description: cert-manager webhook for Domeneshop
 name: cert-manager-webhook-domeneshop
 version: 1.0.0
+icon: https://domene.shop/svg/logo-no.svg
