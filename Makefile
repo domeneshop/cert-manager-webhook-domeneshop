@@ -35,6 +35,15 @@ docker:
 		--build-arg "GIT_BRANCH=$(GIT_BRANCH)" \
 		-t "$(IMAGE_NAME):$(IMAGE_TAG)" .
 
+docker-push:
+	docker buildx build \
+		--push \
+		--build-arg "BUILD_DATE=$(BUILD_DATE)" \
+		--build-arg "GIT_COMMIT=$(GIT_COMMIT)" \
+		--build-arg "GIT_BRANCH=$(GIT_BRANCH)" \
+		--platform linux/amd64,linux/arm64,linux/arm/v7 \
+		-t "$(IMAGE_NAME):$(IMAGE_TAG)" .
+
 .PHONY: rendered-manifest.yaml
 rendered-manifest.yaml:
 	helm template \
